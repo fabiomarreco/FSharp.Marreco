@@ -170,7 +170,10 @@ let createTuple (item1:string) (item2:int) (item3:float)  =
     (item1, item2, item3)
 
 
-createTuple |> map <| (WordParser .>> WhiteSpaceParser) <*> (IntParser .>> WhiteSpaceParser) <*> FloatParser |> Parse "cassa 22 33"
+let (<*|>) f p = f <*> (WhiteSpaceParser >>. p)
+let (<!>) = map
+
+createTuple <!> WordParser  <*|> IntParser <*|> FloatParser |> Parse "cassa 22 33"
 
 
 let fa (a:string) (b:int) = a , b
