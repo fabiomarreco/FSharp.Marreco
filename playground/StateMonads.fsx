@@ -8,12 +8,18 @@ module Reader =
     let map f (Reader ra) = (fun s -> ra s |> f) |> Reader
 
 type Reader<'s, 'a> with
-    static member rtn = Reader.rtrn
-    static member bind = Reader.bind
-    static member map = Reader.map
+    static member rtn a = Reader.rtrn a
+    static member bind f m = Reader.bind f m
+    static member map f m= Reader.map f m
 
 
 //----------------------
+
+module Monoid 
+    type MonoidalList  =
+        static member inline mempty : ^a = List<^a>.Empty
+        static member inline mappend list1 list2  : 'a list = List.append list1 list2
+
 
 type Writer<'w, 'a> =  Writer of ('a * 'w list) // f# nao permite declarao de um monoid generico ?
 
@@ -38,10 +44,12 @@ module State =
     let run (State st) s = st s 
 
 
-    type StateBuilder() = 
-        member x.Return  = rtrn
-        member x.Bind (s, f) = bind f s
-        member x.Do
+type StateBuilder() = 
+    member x.Return (a) = State.rtrn a
+    member x.ReturnFrom a = a
+    member x.Bind (s, f) = State.bind f s
+
+let state = new StateBuilder()
 
 
 
@@ -69,3 +77,14 @@ let e0 = { Usuario = "fabio marreco"; Idade = 39}
 
 
 State.run concatenaNome e0
+
+
+
+let x = state { 
+    let! usuario = get (fun s-> s.Usuario)
+    let novoNome = usuario + "FIM!"
+    do! mudaUsuario novoNome
+}
+
+State.run x e0
+
