@@ -61,7 +61,7 @@ type PrincipalCurrency = Currency
 
 //------------------------------
 //virou uma discussao sobre currency.....
-let futureCashFlows (cashFlows, dayCount, compound, currency : Currency) : FutureCashFlows = 
+let futureCashFlows (cashFlows, dayCount, compound) : FutureCashFlows = 
     let toFutureCashFlow = 
         function 
         | Amortization value -> value
@@ -75,7 +75,7 @@ let futureCashFlows (cashFlows, dayCount, compound, currency : Currency) : Futur
     cashFlows 
         |> List.map 
             (fun c-> 
-                let moneyValue = c.Description |> toFutureCashFlow |> Money.convert currency
+                let moneyValue = c.Description |> toFutureCashFlow
                 c.Id, FV (c.SettlementDate, moneyValue))
         |> Map.ofList
     
