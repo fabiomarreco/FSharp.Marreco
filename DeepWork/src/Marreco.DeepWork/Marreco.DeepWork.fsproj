@@ -5,6 +5,7 @@
   <ItemGroup>
     <Compile Include="Time.fs" />
     <Compile Include="Model.fs" />
+    <Compile Include="Playground.fsx" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

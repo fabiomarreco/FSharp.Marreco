@@ -15,6 +15,7 @@ type Assignment =
     | Shallow of ShallowWork list
     | Offwork of Offwork
 
+open Time
 
 module Slot =
     type Slot = private {
@@ -22,13 +23,8 @@ module Slot =
         Assignment: Assignment option
     }
 
-    let createEmpty (p:Duration) =
-        let nSlots = TimeSpan.FromDays(1.).TotalSeconds / p.TotalSeconds |> int
-        [1..(nSlots-1)]
-            |> Seq.scan (fun (last:TimeSpan) _ ->  last.Add (p)) TimeSpan.Zero
-            |> Seq.cast
-            |> Seq.map (fun s -> { Period = { Start = s; Duration = p };  Assignment = None })
-            |> Seq.toList
+    let createEmpty period = { Period = period;  Assignment = None }
+    let createSlotsForDay duration day= Period.splitDayIn duration day |> List.map createEmpty
 
 module Schedule =
     open Slot
