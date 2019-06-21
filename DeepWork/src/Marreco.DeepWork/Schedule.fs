@@ -20,24 +20,29 @@ module Schedule =
         Slots  : Slot list
     }
 
-    let createEmpty date p = { Date = date; Planned = []; Slots = Slot.createEmpty p }
-
-    type ScheduleDuration =
-        | Duration of Duration
-        | Slots of int
+    let createEmpty date duration = 
+        { Date = date; Planned = []; Slots = Slot.createSlotsForDay duration date }
 
 
-    type ScheduleFailures =
-        | StartTimeDoesNotMatchSlot
+    let assign assignment period dailySchedule = 
+        let rec fn schedule
 
-    let schedule work period day =
-        let start = period.Start
-        let end' = period.End
-        let rec apply =
-            function
-            | [] -> Ok []
-            | h::t when inRange(h) ->
-                { h with }
+    // type ScheduleDuration =
+    //     | Duration of Duration
+    //     | Slots of int
+
+
+    // type ScheduleFailures =
+    //     | StartTimeDoesNotMatchSlot
+
+    // let schedule work period day =
+    //     let start = period.Start
+    //     let end' = period.End
+    //     let rec apply =
+    //         function
+    //         | [] -> Ok []
+    //         | h::t when inRange(h) ->
+    //             { h with }
 
 
 
