@@ -1,21 +1,7 @@
 ﻿namespace Marreco.DeepWork
-open System
-type TBD = Undefined // To be defined...
-
-type DeepWork = TBD
-type ShallowWork = TBD
-type Offwork = TBD
-
-type Work =
-    | Deep    of DeepWork
-    | Shallow of ShallowWork
-
-type Assignment =
-    | Deep    of DeepWork
-    | Shallow of ShallowWork list
-    | Offwork of Offwork
 
 open Time
+open Work
 
 module Slot =
     type Slot = private {
@@ -24,7 +10,7 @@ module Slot =
     }
 
     let createEmpty period = { Period = period;  Assignment = None }
-    let createSlotsForDay duration day= Period.splitDayIn duration day |> List.map createEmpty
+    let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
 module Schedule =
     open Slot

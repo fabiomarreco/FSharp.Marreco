@@ -1,0 +1,3 @@
+namespace Marreco.DeepWork
+
+type TBD = Undefined // To be defined...
