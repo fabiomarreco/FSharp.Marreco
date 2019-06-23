@@ -23,9 +23,23 @@ module Schedule =
     let createEmpty date duration = 
         { Date = date; Planned = []; Slots = Slot.createSlotsForDay duration date }
 
+    type ScheduleEvents = 
+        | SlotAssigned of Slot
+        | WorkPlanned of Work
 
-    let assign assignment period dailySchedule = 
-        let rec fn schedule
+    type ScheduleEventErrors = 
+        | NoSlotsAvailable
+
+    let assign what when' schedule = 
+        let rec getevents slots = 
+            match slots with
+            | [] -> Error NoSlotsAvailable
+            | h::t -> match h.Period with       
+                      | Before when' -> getevents t
+                      | After when' -> Error NoSlotsAvailable
+                      | InsideOf when' -> match h.Assignment with
+                                          | None -> 
+
 
     // type ScheduleDuration =
     //     | Duration of Duration
