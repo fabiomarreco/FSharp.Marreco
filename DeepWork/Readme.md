@@ -25,3 +25,17 @@ Schedule is the act of assigning a slot to something
 //------------------------
 differences between day and week schedules
 
+
+```plantuml
+(*) -> "Schedule Work"
+-> "Work Assigned"
+if "Has conflict?" then 
+    -> [No] (*)
+else 
+    --> [Yes] "Unsubscribe Work"
+
+--> "Work Unsubscribed"
+--> "Add Pending Assignement"
+--> "Pending Assignement Included"
+```
+

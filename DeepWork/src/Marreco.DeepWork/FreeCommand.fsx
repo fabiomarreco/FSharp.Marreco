@@ -47,6 +47,14 @@ module Command =
         | Free event -> Free <| EventF.map (bind f) event
 
 
+//-------------------
+
+//Algebra
+
+type Command = Undefined
+type CommandError = Undefined
+type CommandHandler = Command -> State -> Result<Event list, CommandError>
+type Apply = State -> Event -> State
 
     
 let add : Command<

@@ -10,7 +10,7 @@ module Slot =
     }
 
     let createEmpty period = { Period = period;  Assignment = None }
-    let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
+    let createSlotsForDay duration ssdad = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
 module Schedule =
     open Slot
