@@ -10,7 +10,7 @@ module Slot =
     }
 
     let createEmpty period = { Period = period;  Assignment = None }
-    let createSlotsForDay duration ssdad = Period.splitDayInPeriodsOf duration >> List.map createEmpty
+    let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
 module Schedule =
     open Slot
@@ -30,6 +30,7 @@ module Schedule =
     type ScheduleEventErrors = 
         | NoSlotsAvailable
 
+(*
     let assign what when' schedule = 
         let rec getevents slots = 
             match slots with
@@ -39,7 +40,7 @@ module Schedule =
                       | After when' -> Error NoSlotsAvailable
                       | InsideOf when' -> match h.Assignment with
                                           | None -> 
-
+*)
 
     // type ScheduleDuration =
     //     | Duration of Duration
