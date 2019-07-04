@@ -35,7 +35,7 @@ open Slot
 
 
 type Conflicts = Slot * Work list
-type EventF<'a> = 
+type CommandF<'a> = 
     | UnassignWork of Work * Slot * (unit -> 'a)
     | AssignWork of Work * Slot * (Conflicts -> 'a)
     | PlanWork of Work * (unit -> 'a)
@@ -50,7 +50,7 @@ module EventF =
 
 type Command<'a> = 
     | Pure of 'a
-    | Free of EventF<Command<'a>>
+    | Free of CommandF<Command<'a>>
 
 
 module Command = 
@@ -65,11 +65,11 @@ module Command =
 
 
 type CommandBuilder() = 
-    member x.Zero() = Pure ()
-    member x.Return(a) = Command.retrn a
-    member x.Bind (a, f) = Command.bind f a
-    member x.While (guard, body) = if (!guard()) then x.Zero()
-                                   else x.Bind (body(), x.While (guard, body))
+    member __.Zero() = Pure ()
+    member __.Return(a) = Command.retrn a
+    member __.Bind (a, f) = Command.bind f a
+    member x.While (guard, body) = if (not <| guard()) then x.Zero()
+                                   else x.Bind (body, (fun _ -> x.While (guard, body)))
 
     member x.For(coll:seq<_>, func) = 
         let en = coll.GetEnumerator()
@@ -78,22 +78,37 @@ type CommandBuilder() =
 
 
 
-let command = new CommandBuilder()
+let command = CommandBuilder()
 
-let stop = fun a -> Pure a
+let stop = Pure
 let unassignWork work slot = Free <| UnassignWork (work, slot, stop)
 let assignWork work slot = Free <| AssignWork (work, slot, stop)
 let planWork work = Free <| PlanWork (work, stop)
 
 let assignAndPlanConflicts work slot = command {
-        let! conflicts = assignWork work slot
+        let! (slot, workConflicts)  = assignWork work slot
 
-        for conflict in conflicts do
-            do! unassignWork work conflict
-            //do! planWork work conflict
+        for work in workConflicts do
+            do! unassignWork work slot
+            do! planWork work
     }
 
-//-------------------
+
+type Events = 
+    | WorkPlanned of Work 
+    | WorkAssigned of Work * Slot 
+    | WorkUnassigned of Work * Slot 
+
+
+let rec interpretAsEvents state command = 
+    let rec recurse cmd events state =
+        match cmd with
+        | Pure a -> events
+        | Free (PlanWork (work, next)) -> (WorkPlanned work)::events |> recurse (next())
+        | Free (AssignWork (work, slot, next)) -> 
+
+
+
 
 //Algebra
 
@@ -101,6 +116,3 @@ type Command = Undefined
 type CommandError = Undefined
 type CommandHandler = Command -> State -> Result<Event list, CommandError>
 type Apply = State -> Event -> State
-
-    
-let add : Command<
