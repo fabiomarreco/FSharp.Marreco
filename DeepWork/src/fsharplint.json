@@ -1,0 +1,5 @@
+{
+    "conventions": {
+        "MemberNames": { "underscores" : "AllowAny"}
+    }
+}

@@ -1,8 +1,10 @@
 version 5.198.0
 source https://www.nuget.org/api/v2
 
+storage none
 nuget FSharp.Core
-storage: none
+nuget Aether
+generate_load_scripts true
 
 // [ FAKE GROUP ]
 group Build
