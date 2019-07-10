@@ -1,16 +1,14 @@
-﻿namespace Marreco.DeepWork
+﻿module Scheduling
 
 open Time
 open Work
 
-module Slot =
-    type Slot = private {
-        Period    : Period
-        Assignment: Assignment option
-    }
+type Slot = private { Period  : Period; Task : Task option }
 
-    let createEmpty period = { Period = period;  Assignment = None }
+module Slot =
+    let createEmpty period = { Period = period;  Engagement = None }
     let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
+    let rep
 
 module Schedule =
     open Slot
