@@ -8,7 +8,7 @@ type Work =
     | Deep    of DeepWork
     | Shallow of ShallowWork
 
-type Task =
+type Engagement =
     | Deep    of DeepWork
     | Shallow of ShallowWork list
     | Offwork of Offwork
