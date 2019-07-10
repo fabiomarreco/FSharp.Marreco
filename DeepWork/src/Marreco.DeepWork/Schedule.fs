@@ -3,23 +3,38 @@
 open Time
 open Work
 
-type Slot = private { Period  : Period; Task : Task option }
+type Slot = 
+    private { Period  : Period; Task : Task option } with  
+        static member Task_ = (fun s -> s.Task), (fun t s -> { s with Task = t})
 
 module Slot =
-    let createEmpty period = { Period = period;  Engagement = None }
+    let createEmpty period = { Period = period;  Task = None }
     let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
-    let rep
+
+
+type DailySchedule = private {
+    Date   : Date
+    Planned: Work list
+    Slots  : Slot list
+} 
 
 module Schedule =
     open Slot
-    type DailySchedule = private {
-        Date   : Date
-        Planned: Work list
-        Slots  : Slot list
-    }
 
-    let createEmpty date duration = 
+    //  period -> task -> slot list -> (slot list, task list)
+
+    let create date duration = 
         { Date = date; Planned = []; Slots = Slot.createSlotsForDay duration date }
+
+    let assignTask period task schedule = 
+        let (newSlots, tasks) = List.fold (fun (slots, tasks) nextSlot -> 
+                                            match nextSlot.Period with 
+                                            | PeriodTouching period 
+                                                nextSlot::slots, Option.fold (fun ts t -> t::ts) tasks nextSlot.Task
+                                            | _ -> (slots, tasks)) ([], [])
+                                <| schedule.Slots                                
+
+        { schedule with Slots = newSlots}                            
 
     type ScheduleEvents = 
         | SlotAssigned of Slot

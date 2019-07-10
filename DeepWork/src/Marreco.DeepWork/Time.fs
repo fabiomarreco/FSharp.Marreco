@@ -51,11 +51,18 @@ type Period = private { Start : Moment; Duration : Duration } with
     member x.End = x.Start |> Moment.after x.Duration
     member x.ContainsMoment t = (t >= x.Start) && (t <= x.End)
 
-let (|InsideOf|Before|After|PartiallyInsideOf|) (x:Period) p = 
-    if (x.End < p.Start) then Before
-    else if (x.Start > p.End) then After
-    else if (p.Start <= x.Start && p.End >= x.End) then InsideOf
-    else PartiallyInsideOf
+let (|PeriodTouching|_|) (x:Period) (p:Period) = 
+    if (x.End < p.Start) then None
+    else if (x.Start > p.End) then None
+    else if (p.Start <= x.Start && p.End >= x.End) then Some PeriodTouching
+    else Some PeriodTouching
+
+
+// let (|InsideOf|Before|After|PartiallyInsideOf|) (x:Period)  p = 
+//     if (x.End < p.Start) then Before
+//     else if (x.Start > p.End) then After
+//     else if (p.Start <= x.Start && p.End >= x.End) then InsideOf
+//     else PartiallyInsideOf
 
 module Period = 
     // A period can only be in the same day
