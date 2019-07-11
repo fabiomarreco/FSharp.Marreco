@@ -10,6 +10,7 @@
     <Compile Include="Playground.fsx" />
     <Compile Include="Time.fsx" />
     <Compile Include="FreeCommand.fsx" />
+    <Compile Include="test-commands.fsx" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

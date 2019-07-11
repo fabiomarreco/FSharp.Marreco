@@ -11,6 +11,9 @@ type Slot =
         // with  static member Task_ = (fun s -> s.Task), (fun t s -> { s with Task = t})
 
 module Slot =
+    let period { Period = p; Engagement = _} = p
+    let engagement { Period = _; Engagement = e} = e
+
     let createEmpty period = { Period = period;  Engagement = None }
     let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
@@ -23,7 +26,7 @@ let (|Conflicting|_|) engagement slot  =
     | Offwork _, x -> x
      
 
-type DailySchedule = private {
+type Schedule = private {
     Date   : Date
     Planned: Work list
     Slots  : Slot list
@@ -35,6 +38,8 @@ module Schedule =
 
     let slotsInPeriod period schedule = 
         List.choose (fun s -> match s.Period with | PeriodTouching period -> Some s | _ -> None) schedule.Slots
+
+    let findSlotById id schedule = schedule.Slots |> List.tryFind (fun x-> x.Id = id)
 
     // algebra
 
@@ -64,74 +69,4 @@ module Schedule =
             let matchingSlotsId = matchingSlots |> List.map (fun x -> x.Id)
             if (conflicts.IsEmpty) then Ok matchingSlotsId
             else Error (SlotsConflicted conflicts)
-
-
-
-//-------------- EXPERIMENT
-#if INTERACTIVE
-#load "Shared.fs"
-#load "Time.fs"
-#load "Work.fs"
-#endif
-
-
-(*
-TODO: 
-- [ ] Implementar o free monad para os comandos
-- [ ] Criar um comando para dar assign e plan dos conflitos (force?)
-- [ ] Criar um interpreter que gera eventos ?
-
- *)
-
-
-type Events = 
-    | SlotsAssigned of Engagement * SlotId list
-    | SlotUnassigned of SlotId
-    | WorkPlanned of Work
-
-type CommandF<'a> = 
-    | PlanWork of Work * (unit -> 'a)
-    | AssignSlot of (Period * Engagement) * (Result<SlotId list, Schedule.SlotAssignmentError> -> 'a)
-    | UnassignSlot of SlotId * (Engagement option -> 'a)
-
-let map f = function
-    | PlanWork (w, next) -> PlanWork (w, next >> f)
-    | AssignSlot (w, next) -> AssignSlot (w, next >> f)
-    | UnassignSlot (w, next) -> UnassignSlot (w, next >> f)
-
-type Command<'F,'a> = 
-    | Pure of 'a
-    | Free of 'F
-
-(*
-    let assign what when' schedule = 
-        let rec getevents slots = 
-            match slots with
-            | [] -> Error NoSlotsAvailable
-            | h::t -> match h.Period with       
-                      | Before when' -> getevents t
-                      | After when' -> Error NoSlotsAvailable
-                      | InsideOf when' -> match h.Assignment with
-                                          | None -> 
-*)
-
-    // type ScheduleDuration =
-    //     | Duration of Duration
-    //     | Slots of int
-
-
-    // type ScheduleFailures =
-    //     | StartTimeDoesNotMatchSlot
-
-    // let schedule work period day =
-    //     let start = period.Start
-    //     let end' = period.End
-    //     let rec apply =
-    //         function
-    //         | [] -> Ok []
-    //         | h::t when inRange(h) ->
-    //             { h with }
-
-
-
 

@@ -5,8 +5,8 @@ type ShallowWork = TBD
 type Offwork = TBD
 
 type Work =
-    | Deep    of DeepWork
-    | Shallow of ShallowWork
+    | DeepWork    of DeepWork
+    | ShallowWork of ShallowWork
 
 type Engagement =
     | Deep    of DeepWork
