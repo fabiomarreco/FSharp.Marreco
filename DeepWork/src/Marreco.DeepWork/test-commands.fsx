@@ -85,6 +85,14 @@ type Event =
     | SlotUnassigned of SlotId * Engagement option
     | WorkPlanned of Work
 
+module Event = 
+    let apply schedule event = 
+        match event with 
+        | WorkPlanned work -> Schedule.plan work schedule
+        | SlotUnassigned (id, _) -> schedule |> Schedule.setSlotEngagement (fun s -> s.Id = id) None  
+        | SlotsAssigned (engagement, ids) ->
+             schedule |> Schedule.setSlotEngagement (fun s -> List.contains s.Id ids) (Some engagement)
+
 module TestHandlers = 
     module Handlers = 
         let planWork work = WorkPlanned work
@@ -93,9 +101,11 @@ module TestHandlers =
         let assignSlot schedule (period, engagement) = 
             Schedule.tryAssignEngagement period engagement schedule
 
-    let rec interpretAsEvents schedule  = function
+    let rec interpretAsEvents schedule  = 
+        function
         | Pure a -> a
-        | Free (PlanWork (w, next)) -> (Handlers.planWork w)::(interpretAsEvents schedule (next()))
+        | Free (PlanWork (w, next)) -> 
+            (Handlers.planWork w)::(interpretAsEvents schedule (next()))
         | Free (UnassignSlot (id, next)) ->  
             let eg = Handlers.unassignSlot schedule id 
             SlotUnassigned (id, eg)::(interpretAsEvents schedule (next(eg)))
@@ -105,27 +115,28 @@ module TestHandlers =
             | Ok ids -> (SlotsAssigned ((snd input), ids))::(interpretAsEvents schedule (next (Ok ids)))
             | Error err -> (interpretAsEvents schedule (next (Error err)))
 
-module TestHandlers2 = 
-    type CommandError = Undefined
-    module Handlers = 
-        type CommandHandler<'input> = 'input -> Schedule -> Result<Event list, CommandError>
+
+        (*
         let planWork work = WorkPlanned work
-        let unassignSlot (schedule:Schedule) slotId = 
+        let unassignSlot (schedule) slotId = 
             schedule |> Schedule.findSlotById slotId |> Option.bind (Slot.engagement) 
         let assignSlot schedule (period, engagement) = 
             Schedule.tryAssignEngagement period engagement schedule
+            *)
+
 
     let rec interpretAsEvents schedule  = function
         | Pure a -> a
-        | Free (PlanWork (w, next)) -> (Handlers.planWork w)::(interpretAsEvents schedule (next()))
-        | Free (UnassignSlot (id, next)) ->  
-            let eg = Handlers.unassignSlot schedule id 
-            SlotUnassigned (id, eg)::(interpretAsEvents schedule (next(eg)))
-        | Free (AssignSlot (input, next)) -> 
-            let res = Handlers.assignSlot schedule input
-            match res with 
-            | Ok ids -> (SlotsAssigned ((snd input), ids))::(interpretAsEvents schedule (next (Ok ids)))
-            | Error err -> (interpretAsEvents schedule (next (Error err)))
+        | Free (command ) -> 
+        // | Free (PlanWork (w, next)) -> (Handlers.planWork w)::(interpretAsEvents schedule (next()))
+        // | Free (UnassignSlot (id, next)) ->  
+        //     let eg = Handlers.unassignSlot schedule id 
+        //     SlotUnassigned (id, eg)::(interpretAsEvents schedule (next(eg)))
+        // | Free (AssignSlot (input, next)) -> 
+        //     let res = Handlers.assignSlot schedule input
+        //     match res with 
+        //     | Ok ids -> (SlotsAssigned ((snd input), ids))::(interpretAsEvents schedule (next (Ok ids)))
+        //     | Error err -> (interpretAsEvents schedule (next (Error err)))
 
 
 (*

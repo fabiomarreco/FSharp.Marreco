@@ -41,6 +41,12 @@ module Schedule =
 
     let findSlotById id schedule = schedule.Slots |> List.tryFind (fun x-> x.Id = id)
 
+    let setSlotEngagement predicate engagement schedule = 
+        //usar lensing...
+        let replaceEngagement (slot:Slot) = if (predicate slot) then {slot with Engagement = engagement} else slot
+        { schedule with Slots = List.map replaceEngagement schedule.Slots }
+        
+
     // algebra
 
     let plan work schedule = { schedule with Planned = work::schedule.Planned }
