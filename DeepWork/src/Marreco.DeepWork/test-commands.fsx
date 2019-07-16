@@ -101,10 +101,10 @@ module TestHandlers =
             Schedule.tryAssignEngagement period engagement schedule
 
     let rec interpretAsEvents schedule command = 
-        let continue' slot cont = match slot with 
-                                  | Some x -> let schedule' = Event.apply schedule x 
-                                              x::(interpretAsEvents schedule' cont)
-                                  | None -> interpretAsEvents schedule cont
+        let continue' event cont = match event with 
+                                   | Some x -> let schedule' = Event.apply schedule x 
+                                               x::(interpretAsEvents schedule' cont)
+                                   | None -> interpretAsEvents schedule cont
         match command with 
         | Pure a -> a
         | Free (PlanWork (w, next)) -> 
@@ -154,15 +154,15 @@ module TestHandlers =
                 | Error e -> Error e |> interpretAsEvents2 schedule (next res)
             | Error e -> Error e
 
-        (*
-            | PlanWork of Work * (unit -> 'a)
-            | AssignSlot of (Period * Engagement) * (Result<SlotId list, Schedule.SlotAssignmentError> -> 'a)
-            | UnassignSlot of SlotId * (Engagement option -> 'a)
-            *)
+
+    //-----------------------------
+    let schedule = Schedule.create (Date.today) (Duration.fromMinutes 30)
+    let ev = interpretAsEvents schedule
 
     type Plan = Work -> unit
-    type Assign = (Period * Engagement) -> Result<SlotId list, Schedule.SlotAssignmentError>
-    type Unassign = SlotId -> Engagement option
+    type Unasssign = SlotId -> Engagement option
+    type Assign = (Period * Engagement) -> Result<SlotId, Schedule.SlotAssignmentError>
+    type FAppend<'State, 'a> = 'State -> 'a -> 'State
 
     let rec cata fPure fPlan fAssign fUnassign  command = 
         let recurse = cata fPure fPlan fAssign fUnassign 
@@ -189,35 +189,24 @@ module TestHandlers =
         | Error err -> 
 
 
-(*
-    let assign what when' schedule = 
-        let rec getevents slots = 
-            match slots with
-            | [] -> Error NoSlotsAvailable
-            | h::t -> match h.Period with       
-                      | Before when' -> getevents t
-                      | After when' -> Error NoSlotsAvailable
-                      | InsideOf when' -> match h.Assignment with
-                                          | None -> 
-*)
-
-    // type ScheduleDuration =
-    //     | Duration of Duration
-    //     | Slots of int
-
-
-    // type ScheduleFailures =
-    //     | StartTimeDoesNotMatchSlot
-
-    // let schedule work period day =
-    //     let start = period.Start
-    //     let end' = period.End
-    //     let rec apply =
-    //         function
-    //         | [] -> Ok []
-    //         | h::t when inRange(h) ->
-    //             { h with }
 
 
 
 
+    let rec fold fplan funassign fassign state = function
+        | Pure s -> s
+        | Free (PlanWork (i, next)) -> 
+            let state' = fplan state i
+            fold fplan funassign fassign (state') (next())
+        | Free (UnassignSlot (i, next)) -> 
+            let state' = funassign state i
+            fold fplan funassign fassign (state') 
+
+
+    let rec fold' f state = function 
+        | [] -> state
+        | h::t -> fold f (f state h) t
+
+
+    
+    

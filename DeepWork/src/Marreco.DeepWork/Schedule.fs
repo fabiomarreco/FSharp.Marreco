@@ -3,11 +3,13 @@
 open Time
 open Work
 
+
 type SlotId = Period
 type Slot = 
     private { Period  : Period; Engagement : Engagement option }
         with 
             member x.Id : SlotId = x.Period
+            static member Engagement_ = ()
         // with  static member Task_ = (fun s -> s.Task), (fun t s -> { s with Task = t})
 
 module Slot =
