@@ -101,19 +101,23 @@ module TestHandlers =
         let assignSlot schedule (period, engagement) = 
             Schedule.tryAssignEngagement period engagement schedule
 
-    let rec interpretAsEvents schedule  = 
-        function
+    let rec interpretAsEvents schedule command = 
+        let continue' slot cont = match slot with 
+                                  | Some x -> let schedule' = Event.apply schedule x 
+                                              x::(interpretAsEvents schedule' cont)
+                                  | None -> interpretAsEvents schedule cont
+        match command with 
         | Pure a -> a
         | Free (PlanWork (w, next)) -> 
-            (Handlers.planWork w)::(interpretAsEvents schedule (next()))
+            continue' (Handlers.planWork w |> Some) (next())
         | Free (UnassignSlot (id, next)) ->  
-            let eg = Handlers.unassignSlot schedule id 
-            SlotUnassigned (id, eg)::(interpretAsEvents schedule (next(eg)))
+            let res = Handlers.unassignSlot schedule id 
+            continue' (SlotUnassigned (id, res) |> Some) (next(res))
         | Free (AssignSlot (input, next)) -> 
             let res = Handlers.assignSlot schedule input
             match res with 
-            | Ok ids -> (SlotsAssigned ((snd input), ids))::(interpretAsEvents schedule (next (Ok ids)))
-            | Error err -> (interpretAsEvents schedule (next (Error err)))
+            | Ok ids -> continue' (SlotsAssigned ((snd input), ids) |> Some) (next (Ok ids))
+            | Error err -> continue' None (next (Error err))
 
 
         (*
