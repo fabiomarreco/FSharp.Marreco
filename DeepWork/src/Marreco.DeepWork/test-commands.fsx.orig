@@ -119,6 +119,7 @@ module TestHandlers =
             | Error err -> continue' None (next (Error err))
 
 
+<<<<<<< HEAD
     open Schedule
     let rec interpretAsEvents2 schedule command current : Result<Event list, SlotAssignmentError> = 
         // let continue' slot cont = match slot with 
@@ -154,19 +155,15 @@ module TestHandlers =
                 | Error e -> Error e |> interpretAsEvents2 schedule (next res)
             | Error e -> Error e
 
-
-    //-----------------------------
-    let schedule = Schedule.create (Date.today) (Duration.fromMinutes 30)
-    let ev = interpretAsEvents schedule (Commands.planWork (Shallow "shallow"))
-
-
-
-
+        (*
+            | PlanWork of Work * (unit -> 'a)
+            | AssignSlot of (Period * Engagement) * (Result<SlotId list, Schedule.SlotAssignmentError> -> 'a)
+            | UnassignSlot of SlotId * (Engagement option -> 'a)
+            *)
 
     type Plan = Work -> unit
-    type Unasssign = SlotId -> Engagement option
-    type Assign = (Period * Engagement) -> Result<SlotId, Schedule.SlotAssignmentError>
-    type FAppend<'State, 'a> = 'State -> 'a -> 'State
+    type Assign = (Period * Engagement) -> Result<SlotId list, Schedule.SlotAssignmentError>
+    type Unassign = SlotId -> Engagement option
 
     let rec cata fPure fPlan fAssign fUnassign  command = 
         let recurse = cata fPure fPlan fAssign fUnassign 
@@ -191,6 +188,32 @@ module TestHandlers =
             let schedule' = Event.apply schedule event' 
             schedule', event'::eventList
         | Error err -> 
+=======
+
+    //-----------------------------
+    let schedule = Schedule.create (Date.today) (Duration.fromMinutes 30)
+    let ev = interpretAsEvents schedule
+
+    type Plan = Work -> unit
+    type Unasssign = SlotId -> Engagement option
+    type Assign = (Period * Engagement) -> Result<SlotId, Schedule.SlotAssignmentError>
+    type FAppend<'State, 'a> = 'State -> 'a -> 'State
+
+    // let rec interp2 plan unassign assign  = function 
+    //     | Pure s -> s
+    //     | Free (PlanWork (w, next)) -> plan w |> next |> interp2 plan unassign assign
+    //     | Free (UnassignSlot (w, next)) -> unassign w |> next |> interp2 plan unassign assign
+    //     | Free (AssignSlot (w, next)) -> assign w |> next |> interp2 plan unassign assign
+
+
+    let interpret : Plan -> Unasssign -> Assign -> FAppend<'State, 'a> -> 'State -> Command<'a> -> 'State = 
+        fun plan unassign assign fappend state command -> 
+            let rec loop state = function 
+                | Pure a -> a
+                | Free (PlanWork (w, next)) -> 
+                    let nextCmd = plan w |> next 
+                    let state' = fappend state 
+>>>>>>> WIP
 
 
 
