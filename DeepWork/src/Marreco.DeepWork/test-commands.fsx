@@ -71,8 +71,7 @@ module Commands =
                                 do! planWork (ShallowWork w)
         | _ -> do ignore()
     }
-
-                              
+    
 
 /// END OF COMMAND DEFINITION
 
@@ -95,7 +94,7 @@ module Event =
 
 module TestHandlers = 
     module Handlers = 
-        let planWork work = WorkPlanned work
+        let planWork work = (WorkPlanned work)
         let unassignSlot (schedule:Schedule) slotId = 
             schedule |> Schedule.findSlotById slotId |> Option.bind (Slot.engagement) 
         let assignSlot schedule (period, engagement) = 
@@ -120,27 +119,74 @@ module TestHandlers =
             | Error err -> continue' None (next (Error err))
 
 
+    open Schedule
+    let rec interpretAsEvents2 schedule command current : Result<Event list, SlotAssignmentError> = 
+        // let continue' slot cont = match slot with 
+        //                           | Some x -> let schedule' = Event.apply schedule x 
+        //                                       x::(interpretAsEvents schedule' cont)
+        //                           | None -> interpretAsEvents schedule cont
+        match command with 
+        | Pure a -> a
+        | Free (PlanWork (w, next)) -> 
+            match current with 
+            | Ok (schedule, events) -> 
+                let event' = WorkPlanned w 
+                let schedule' = Event.apply schedule event'
+                (schedule', event'::events) |> Ok |> interpretAsEvents2 schedule' (next()) 
+            | Error e -> Error e
+        | Free (UnassignSlot (id, next)) ->  
+            match current with 
+            | Ok (schedule, events) -> 
+                let res = Handlers.unassignSlot schedule id 
+                let event' = SlotUnassigned (id, res) 
+                let schedule' = Event.apply schedule event'
+                (schedule', event'::events) |> Ok |> interpretAsEvents2 schedule' (next res) 
+            | Error e -> Error e
+        | Free (AssignSlot ((period, engagement), next)) -> 
+            match current with 
+            | Ok (schedule, events) -> 
+                let res = Handlers.assignSlot schedule (period, engagement)
+                match res with 
+                | Ok ids -> 
+                    let event' = SlotsAssigned (engagement, ids) 
+                    let schedule' = Event.apply schedule event'
+                    (schedule', event'::events) |> Ok |> interpretAsEvents2 schedule' (next res) 
+                | Error e -> Error e |> interpretAsEvents2 schedule (next res)
+            | Error e -> Error e
+
         (*
-        let planWork work = WorkPlanned work
-        let unassignSlot (schedule) slotId = 
-            schedule |> Schedule.findSlotById slotId |> Option.bind (Slot.engagement) 
-        let assignSlot schedule (period, engagement) = 
-            Schedule.tryAssignEngagement period engagement schedule
+            | PlanWork of Work * (unit -> 'a)
+            | AssignSlot of (Period * Engagement) * (Result<SlotId list, Schedule.SlotAssignmentError> -> 'a)
+            | UnassignSlot of SlotId * (Engagement option -> 'a)
             *)
 
+    type Plan = Work -> unit
+    type Assign = (Period * Engagement) -> Result<SlotId list, Schedule.SlotAssignmentError>
+    type Unassign = SlotId -> Engagement option
 
-    let rec interpretAsEvents schedule  = function
-        | Pure a -> a
-        | Free (command ) -> 
-        // | Free (PlanWork (w, next)) -> (Handlers.planWork w)::(interpretAsEvents schedule (next()))
-        // | Free (UnassignSlot (id, next)) ->  
-        //     let eg = Handlers.unassignSlot schedule id 
-        //     SlotUnassigned (id, eg)::(interpretAsEvents schedule (next(eg)))
-        // | Free (AssignSlot (input, next)) -> 
-        //     let res = Handlers.assignSlot schedule input
-        //     match res with 
-        //     | Ok ids -> (SlotsAssigned ((snd input), ids))::(interpretAsEvents schedule (next (Ok ids)))
-        //     | Error err -> (interpretAsEvents schedule (next (Error err)))
+    let rec cata fPure fPlan fAssign fUnassign  command = 
+        let recurse = cata fPure fPlan fAssign fUnassign 
+        match command with 
+        | Pure a -> fPure a
+        | Free (PlanWork (w, next)) -> fPlan w (recurse (next()))
+        | Free (AssignSlot (w, next)) -> fAssign w (next >> recurse)
+        | Free (UnassignSlot (w, next)) -> fUnassign w (next >> recurse)
+
+    let fpure = id
+    let fplan work (schedule, eventList) = 
+        let event' = (WorkPlanned work)
+        let schedule' = Event.apply schedule event'
+        schedule', event'::eventList
+
+    let fassign (period, engagement) cont'  = 
+        let res = Handlers.assignSlot schedule (period, engagement)
+        let (schedule, eventList) = cont' res
+        match res with 
+        | Ok ids -> 
+            let event' = SlotsAssigned (engagement, ids)
+            let schedule' = Event.apply schedule event' 
+            schedule', event'::eventList
+        | Error err -> 
 
 
 (*
