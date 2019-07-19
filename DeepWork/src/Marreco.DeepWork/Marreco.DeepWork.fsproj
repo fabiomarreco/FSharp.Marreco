@@ -12,6 +12,7 @@
     <Compile Include="FreeCommand.fsx" />
     <Compile Include="test-commands.fsx" />
     <Compile Include="test-command-scratch3.fsx" />
+    <Compile Include="test-command-scratch4-Result.fsx" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

@@ -23,11 +23,14 @@ type CmdError = string
 type Account = { Client : Client; Balance : Money }
 
 
+type DepositError = | AccountDoesNotExists
 type DepositResult = 
-    | Success | AccountDoesNotExists
+    | Success | DepositError of DepositError
 
+type CreationError = | AccountAlreadyExists
 type AccountCreationResult = 
-    | Success | AccountAlreadyExists
+    | Success | CreationError of CreationError
+
 
 type CommandF<'a> = 
     | CreateAccount of Client * (AccountCreationResult -> 'a)
@@ -67,7 +70,7 @@ let deposit money = Deposit(money, stop) |> Free
 let depositCreatingAccount client money = command { 
     let! depositResult = deposit money
     return! match (depositResult) with 
-            | AccountDoesNotExists -> command {
+            | DepositError (AccountDoesNotExists) -> command {
                    // I am ignoring createAccount possible error in the sample
                    // since I have a single possible error that was already treated
                    do! (createAccount client |> Command.map ignore)
@@ -84,18 +87,59 @@ type Event =
 
 module Account = 
     let create client = function 
-         | Some _ -> AccountAlreadyExists
+         | Some _ -> AccountCreationResult.CreationError AccountAlreadyExists 
          | None -> AccountCreationResult.Success
 
     let deposit money = function
         | Some account -> DepositResult.Success
-        | None -> AccountDoesNotExists
+        | None -> DepositError AccountDoesNotExists
 
 
 module Event = 
     let apply account = function
         | AccountCreated client -> { Client = client; Balance = 0.}
         | MoneyDeposited money -> { account with Balance = account.Balance + money }
+
+
+//===========================================
+let rec interpret fCreateAccount fDeposit fStop command =
+    let loop = interpret fCreateAccount fDeposit fStop 
+    match command with
+    | Pure a -> fStop a
+    | Free (CreateAccount (client, next)) -> fCreateAccount client |> next |> loop
+    | Free (Deposit (client, next)) -> fDeposit client |> next |> loop
+
+
+// Normalizing the command errors
+type CommandExecutionError = 
+    | CreationError of CreationError
+    | DepositError of DepositError
+
+
+//Objetivo Final: fazer um interpreter que retorna Result<EventList, CommandExecutionEror>
+//O que pode ser feito: 
+// 1- Fazer a conversao e mapeamento dentro do interpreter
+// 2- Fazer novo AST convertendo para o resultdo esperado (precisa de outro free monad, 2 interpreters, etc.)
+
+
+(*
+let normalizeErrors  fCreateAccount fDeposit fStop command = 
+    let fCreateAccount'  = 
+        fun client -> match (fCreateAccount client) with 
+                      | Success -> Ok (AccountCreated client)
+                      | AccountCreationResult.CreationError err -> Error (CreationError err)
+
+    let fDeposit' next = 
+        fun money -> match (fDeposit money) with 
+                      | Success -> Ok (MoneyDeposited money)
+                      | DepositResult.DepositError err -> Error (DepositError err)
+
+
+ *)  
+
+
+//==================================================
+
 
 
 let rec interpretAsEventList (events, account) = function
@@ -108,7 +152,7 @@ let rec interpretAsEventList (events, account) = function
             let event = AccountCreated client
             let account' = Event.apply ({ Client = ""; Balance = 0.}) event |> Some // o option aqui nao esta legal
             interpretAsEventList (event::events, account') cont
-        | AccountAlreadyExists -> 
+        | AccountCreationResult.CreationError (AccountAlreadyExists) -> 
             interpretAsEventList (events, account) cont
 
     | Free (Deposit (value, next)) -> 
@@ -119,10 +163,13 @@ let rec interpretAsEventList (events, account) = function
             let event = MoneyDeposited value
             let account' = Event.apply (account.Value) event |> Some
             interpretAsEventList (event::events, account') cont
-        | AccountDoesNotExists -> 
+        | DepositResult.DepositError AccountDoesNotExists -> 
             interpretAsEventList (events, account) cont
 
-let rec interpretAsEventListResult (events, account) = function
+let rec interpretAsEventListResult (events, account) command : Result<Event list, CommandExecutionError> = 
+    let success a = Command.map (const' Ok a)
+    let error error = Command.map (const' Error error)
+    match command with 
     | Pure a -> match a with 
                 | Ok _ -> Ok (events |> List.rev) 
                 | Error x -> Error x
@@ -134,9 +181,13 @@ let rec interpretAsEventListResult (events, account) = function
         | AccountCreationResult.Success -> 
             let event = AccountCreated client
             let account' = Event.apply ({ Client = ""; Balance = 0.}) event |> Some // o option aqui nao esta legal
-            interpretAsEventList (event::events, account') (Command.map (Ok) cont) |> Ok
-        | AccountAlreadyExists -> 
-            interpretAsEventList (events, account) (Command.map (Error >> const' "Account Already Exists") cont) |> Ok
+            let events' = event::events
+            interpretAsEventListResult (events', account') 
+                (cont |> success events')
+
+        | AccountCreationResult.CreationError AccountAlreadyExists -> 
+            interpretAsEventListResult (events, account) 
+                (cont |> error (CreationError AccountAlreadyExists))
 
     | Free (Deposit (value, next)) -> 
         let res = Account.deposit value account
@@ -145,17 +196,20 @@ let rec interpretAsEventListResult (events, account) = function
         | DepositResult.Success -> 
             let event = MoneyDeposited value
             let account' = Event.apply (account.Value) event |> Some
-            interpretAsEventList (event::events, account') (Command.map (Ok) cont) |> Ok
-        | AccountDoesNotExists -> 
-            interpretAsEventList (events, account) (Command.map (Error >> const' "Account does not exists") cont) |> Ok
+            let events' = event::events
+            interpretAsEventListResult (events', account') 
+                (cont |> success events')
+        | DepositResult.DepositError AccountDoesNotExists -> 
+            interpretAsEventListResult (events, account) 
+                (cont |> error (DepositError AccountDoesNotExists))
 
 
 
-let interp = interpretAsEventListResult ([],None)
+let interp cmd = interpretAsEventListResult ([],None) (Command.map Ok cmd)
     
 createAccount "Marreco" |> interp
-deposit 10. |> interp ([], None) 
+depositCreatingAccount "Marreco" 10. |> interp
 
-depositCreatingAccount "Marreco" 10. |> interpretAsEventList ([], None) 
+deposit 10. |> interp
 
 
