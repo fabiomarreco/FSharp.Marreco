@@ -137,10 +137,52 @@ let normalizeErrors  fCreateAccount fDeposit fStop command =
 
  *)  
 
+let interpretAsEventListResult account command = 
+    let rec loop  (events, account, error) command =
+        match command with 
+        | Pure a -> match error with | Some err -> Error err | None -> Ok events
+
+        | Free (CreateAccount (client, next)) -> 
+            let res = Account.create client account
+            let cont = next res
+            match res with 
+            | AccountCreationResult.Success -> 
+                let event = AccountCreated client
+                let account' = Event.apply ({ Client = ""; Balance = 0.}) event |> Some // o option aqui nao esta legal
+                let events' = event::events
+                loop (events', account', None) cont
+
+            | AccountCreationResult.CreationError AccountAlreadyExists -> 
+                loop (events, account, Some (CreationError AccountAlreadyExists))  cont
+
+        | Free (Deposit (value, next)) -> 
+            let res = Account.deposit value account
+            let cont = next res
+            match res with 
+            | DepositResult.Success -> 
+                let event = MoneyDeposited value
+                let account' = Event.apply (account.Value) event |> Some
+                
+                let events' = event::events
+                loop (events', account', None)  cont
+            | DepositResult.DepositError AccountDoesNotExists -> 
+                loop (events, account, Some (DepositError AccountDoesNotExists)) cont
+
+    in loop ([], account, None) command
+
+let interp cmd = interpretAsEventListResult None cmd
+    
+createAccount "Marreco" |> interp
+depositCreatingAccount "Marreco" 10. |> interp
+
+deposit 10. |> interp
+
+
+
 
 //==================================================
 
-
+(*
 
 let rec interpretAsEventList (events, account) = function
     | Pure a -> events |> List.rev
@@ -165,51 +207,4 @@ let rec interpretAsEventList (events, account) = function
             interpretAsEventList (event::events, account') cont
         | DepositResult.DepositError AccountDoesNotExists -> 
             interpretAsEventList (events, account) cont
-
-let rec interpretAsEventListResult (events, account) command : Result<Event list, CommandExecutionError> = 
-    let success a = Command.map (const' Ok a)
-    let error error = Command.map (const' Error error)
-    match command with 
-    | Pure a -> match a with 
-                | Ok _ -> Ok (events |> List.rev) 
-                | Error x -> Error x
-
-    | Free (CreateAccount (client, next)) -> 
-        let res = Account.create client account
-        let cont = next res
-        match res with 
-        | AccountCreationResult.Success -> 
-            let event = AccountCreated client
-            let account' = Event.apply ({ Client = ""; Balance = 0.}) event |> Some // o option aqui nao esta legal
-            let events' = event::events
-            interpretAsEventListResult (events', account') 
-                (cont |> success events')
-
-        | AccountCreationResult.CreationError AccountAlreadyExists -> 
-            interpretAsEventListResult (events, account) 
-                (cont |> error (CreationError AccountAlreadyExists))
-
-    | Free (Deposit (value, next)) -> 
-        let res = Account.deposit value account
-        let cont = next res
-        match res with 
-        | DepositResult.Success -> 
-            let event = MoneyDeposited value
-            let account' = Event.apply (account.Value) event |> Some
-            let events' = event::events
-            interpretAsEventListResult (events', account') 
-                (cont |> success events')
-        | DepositResult.DepositError AccountDoesNotExists -> 
-            interpretAsEventListResult (events, account) 
-                (cont |> error (DepositError AccountDoesNotExists))
-
-
-
-let interp cmd = interpretAsEventListResult ([],None) (Command.map Ok cmd)
-    
-createAccount "Marreco" |> interp
-depositCreatingAccount "Marreco" 10. |> interp
-
-deposit 10. |> interp
-
-
+*)
