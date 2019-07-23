@@ -116,31 +116,10 @@ type CommandExecutionError =
     | DepositError of DepositError
 
 
-//Objetivo Final: fazer um interpreter que retorna Result<EventList, CommandExecutionEror>
-//O que pode ser feito: 
-// 1- Fazer a conversao e mapeamento dentro do interpreter
-// 2- Fazer novo AST convertendo para o resultdo esperado (precisa de outro free monad, 2 interpreters, etc.)
-
-
-(*
-let normalizeErrors  fCreateAccount fDeposit fStop command = 
-    let fCreateAccount'  = 
-        fun client -> match (fCreateAccount client) with 
-                      | Success -> Ok (AccountCreated client)
-                      | AccountCreationResult.CreationError err -> Error (CreationError err)
-
-    let fDeposit' next = 
-        fun money -> match (fDeposit money) with 
-                      | Success -> Ok (MoneyDeposited money)
-                      | DepositResult.DepositError err -> Error (DepositError err)
-
-
- *)  
-
 let interpretAsEventListResult account command = 
     let rec loop  (events, account, error) command =
         match command with 
-        | Pure a -> match error with | Some err -> Error err | None -> Ok events
+        | Pure a -> match error with | Some err -> Error err | None -> Ok (events |> List.rev)
 
         | Free (CreateAccount (client, next)) -> 
             let res = Account.create client account
@@ -178,33 +157,3 @@ depositCreatingAccount "Marreco" 10. |> interp
 deposit 10. |> interp
 
 
-
-
-//==================================================
-
-(*
-
-let rec interpretAsEventList (events, account) = function
-    | Pure a -> events |> List.rev
-    | Free (CreateAccount (client, next)) -> 
-        let res = Account.create client account
-        let cont = next res
-        match res with 
-        | AccountCreationResult.Success -> 
-            let event = AccountCreated client
-            let account' = Event.apply ({ Client = ""; Balance = 0.}) event |> Some // o option aqui nao esta legal
-            interpretAsEventList (event::events, account') cont
-        | AccountCreationResult.CreationError (AccountAlreadyExists) -> 
-            interpretAsEventList (events, account) cont
-
-    | Free (Deposit (value, next)) -> 
-        let res = Account.deposit value account
-        let cont = next res
-        match res with 
-        | DepositResult.Success -> 
-            let event = MoneyDeposited value
-            let account' = Event.apply (account.Value) event |> Some
-            interpretAsEventList (event::events, account') cont
-        | DepositResult.DepositError AccountDoesNotExists -> 
-            interpretAsEventList (events, account) cont
-*)
