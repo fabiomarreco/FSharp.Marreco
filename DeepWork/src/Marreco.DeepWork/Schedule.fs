@@ -19,6 +19,12 @@ module Slot =
     let createEmpty period = { Period = period;  Engagement = None }
     let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
+let (|Conflicts|_|) work slot = 
+    match work, slot.Engagement with 
+    | _, None -> None
+    | (ShallowWork _), (Some (Shallow _)) -> None 
+    | _, (Some d) -> Some d
+
 let (|Conflicting|_|) engagement slot  = 
     match engagement, slot.Engagement with 
     | _, None -> None

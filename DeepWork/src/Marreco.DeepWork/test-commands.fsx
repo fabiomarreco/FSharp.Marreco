@@ -120,7 +120,7 @@ module TestHandlers =
 
 
     open Schedule
-    let rec interpretAsEvents2 schedule command current : Result<Event list, SlotAssignmentError> = 
+    let rec interpretAsEvents2 schedu   le command current : Result<Event list, SlotAssignmentError> = 
         // let continue' slot cont = match slot with 
         //                           | Some x -> let schedule' = Event.apply schedule x 
         //                                       x::(interpretAsEvents schedule' cont)

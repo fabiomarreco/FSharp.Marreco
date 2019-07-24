@@ -61,9 +61,9 @@ type CommandBuilder() =
     member __.Zero() = Pure ()
     member __.Return(a) = Command.retrn a
     member __.Bind (a, f) = Command.bind f a
+ 
 
-let command = CommandBuilder()
-
+ 
 let stop = Pure
 let createAccount client = CreateAccount(client, stop) |> Free
 let deposit money = Deposit(money, stop) |> Free

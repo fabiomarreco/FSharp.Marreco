@@ -13,6 +13,7 @@
     <Compile Include="test-commands.fsx" />
     <Compile Include="test-command-scratch3.fsx" />
     <Compile Include="test-command-scratch4-Result.fsx" />
+    <Compile Include="remake-schedulev0.fsx" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
