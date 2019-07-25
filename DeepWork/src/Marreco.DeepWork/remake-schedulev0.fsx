@@ -46,6 +46,9 @@ type Command<'a> =
 
 module Command = 
     let retrn a = Pure a
+    let rec map f = function 
+        | Pure a -> f a  |> Pure
+        | Free c -> CommandF.map (map f) c |> Free
     let rec bind f = function 
         | Pure a -> f a 
         | Free c -> CommandF.map (bind f) c |> Free
@@ -73,10 +76,10 @@ let unplanWork work = Free <| UnplanWork (work, stop)
 let setSlotAssignment slotId engagement = Free <| SetSlotAssignment ((slotId,engagement), stop)
 
 //other....
-let getSlotById slotId = command { 
-    let! schedule = getSchedule
-    return Schedule.findSlotById slotId schedule
-}
+let mapSchedule f = Command.map f getSchedule
+let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
+let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
+
 
 type ShallowWorkAssgimentError = 
     | SlotIdNotFound
