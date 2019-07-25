@@ -81,26 +81,13 @@ let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
 let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
 
 
-type ShallowWorkAssgimentError = 
-    | SlotIdNotFound
-    | ShallowWorkConflict of Work
-
-
-let assignShallowWorkToSlot slotId swork = command {
-    let result = 
-        match! getSlotById slotId with 
-        | None -> Error SlotIdNotFound
-        | Some slot -> 
-            match slot.Engagement with 
-            | None 
-            | Some (Shallow _) -> Ok Success
-            | Some (Deep d) -> Error (ShallowWorkConflict (DeepWork d))
-    return result
-}
+// let assignWork period work = command { 
+//     let! slots = slotsInPeriod period
+// }
 
 
 
-
+(*
 let assignWorkToSlot slotId work = command { 
     let! schedule = getSchedule
     let result = 
@@ -119,3 +106,6 @@ let assignAndPlanConflicts work slot = command {
             do! unassignWork work slot
             do! planWork work
     }
+    
+    
+*)

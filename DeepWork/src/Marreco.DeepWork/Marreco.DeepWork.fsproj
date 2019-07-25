@@ -7,12 +7,7 @@
     <Compile Include="Time.fs" />
     <Compile Include="Work.fs" />
     <Compile Include="Schedule.fs" />
-    <Compile Include="Playground.fsx" />
     <Compile Include="Time.fsx" />
-    <Compile Include="FreeCommand.fsx" />
-    <Compile Include="test-commands.fsx" />
-    <Compile Include="test-command-scratch3.fsx" />
-    <Compile Include="test-command-scratch4-Result.fsx" />
     <Compile Include="remake-schedulev0.fsx" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />

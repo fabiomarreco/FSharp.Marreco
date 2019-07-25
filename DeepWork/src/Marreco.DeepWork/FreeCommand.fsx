@@ -30,9 +30,7 @@ type Event =
 #load "Work.fs"
 #load "Schedule.fs"
 open Work
-open Marreco.DeepWork
-open Slot
-
+open Scheduling
 
 type Conflicts = Slot * Work list
 type CommandF<'a> = 

@@ -19,20 +19,31 @@ module Slot =
     let createEmpty period = { Period = period;  Engagement = None }
     let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
-let (|Conflicts|_|) work slot = 
-    match work, slot.Engagement with 
-    | _, None -> None
-    | (ShallowWork _), (Some (Shallow _)) -> None 
-    | _, (Some d) -> Some d
+    type ConflictingWork = 
+        | ConflictsWithWork of Work list
+        | ConflictsWithOffWork of Offwork
 
-let (|Conflicting|_|) engagement slot  = 
-    match engagement, slot.Engagement with 
-    | _, None -> None
-    | Shallow _, Some (Shallow _) -> None
-    | Shallow _, d -> d
-    | Deep _, x -> x
-    | Offwork _, x -> x
-     
+    let assignShallowWork work slot = 
+        match slot.Engagement with
+        | None -> Ok { slot with Engagement = Some (Shallow [work])}
+        | Some (Shallow l) -> Ok { slot with Engagement = Some (Shallow (work::l)) }
+        | Some (Deep d) -> Error (ConflictsWithWork [DeepWork d])
+        | Some (Offwork o) -> Error (ConflictsWithOffWork o)
+
+    let assignDeepWork work slot = 
+        match slot.Engagement with 
+        | None -> Ok { slot with Engagement = Some (Deep work)}
+        | Some (Shallow l) -> l |> List.map (ShallowWork) |> ConflictsWithWork |> Error
+        | Some (Deep d) -> Error <| ConflictsWithWork [DeepWork d]
+        | Some (Offwork o) -> Error (ConflictsWithOffWork o)
+
+
+    let assignWork work = 
+        match work with 
+        | ShallowWork w -> assignShallowWork w
+        | DeepWork d -> assignDeepWork d
+
+//================================================================
 
 type Schedule = private {
     Date   : Date
@@ -64,11 +75,13 @@ module Schedule =
         | NoMatchingSlots
         | SlotsConflicted of SlotConflicts
 
+
+
     (*
      * tries to assign an engagement to slots inside a period, it returns either
      *   - Success with matching slots 
      *   - Failure stating that either no slot was found or there were conflicts
-     *)
+     
     let tryAssignEngagement period engagement schedule = 
         let matchingSlots = slotsInPeriod period schedule
         if (matchingSlots.IsEmpty) then Error NoMatchingSlots
@@ -84,3 +97,4 @@ module Schedule =
             if (conflicts.IsEmpty) then Ok matchingSlotsId
             else Error (SlotsConflicted conflicts)
 
+*)
