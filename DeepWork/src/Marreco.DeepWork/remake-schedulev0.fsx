@@ -20,12 +20,13 @@ type SlotIdNotFound = SlotIdNotFound
 type Success = Success
 
 type Predicate<'a> = 'a -> bool
+type Update<'a>  = 'a -> 'a
 
 type CommandF<'a> = 
     | GetSchedule of unit * (Schedule -> 'a)
     | PlanWork of Work * (Success -> 'a)
     | UnplanWork of Work * (Success -> 'a)
-    | SetSlotAssignment of (Slot -> Engagement option) * (Success -> 'a)
+    | SetSlotAssignment of (Predicate<Slot> * Update<Slot>) * (Success -> 'a)
 
 (*
     | PlanWork of Work * (unit -> 'a)
@@ -77,7 +78,7 @@ let stop = Pure
 let getSchedule = Free <| GetSchedule ((), stop)
 let planWork work = Free <| PlanWork (work, stop)
 let unplanWork work = Free <| UnplanWork (work, stop)
-let setSlotAssignment f = Free <| SetSlotAssignment (f, stop)
+let setSlotAssignment f u = Free <| SetSlotAssignment ((f, u), stop)
 
 //other....
 let mapSchedule f = Command.map f getSchedule
@@ -85,11 +86,16 @@ let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
 let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
 
 let assignWorkToSlot work slot = command {
-    let p slot = 
-        let slotAssigment = Slot.assignWork work slot
-        Result.map (fun s-> setSlotAssignment s slotAssigment
+    let filter s = s.Id == slot.Id
+    let update s = Slot.assignWork work s
+    let set = setSlotAssignment filter
+    let p slot = command { 
+        let! a = set slot 
+        a.
+    }
 
-    p slot
+    
+   
 }
 
 //success | error (conflitos)
