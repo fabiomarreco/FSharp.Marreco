@@ -1,10 +1,13 @@
+#load "../.paket/load/netcoreapp2.2/main.group.fsx"
 #load "Shared.fs"
 #load "Time.fs"
 #load "Work.fs"
 #load "Schedule.fs"
+
+//open Marreco.DeepWork
 open Work
-open Marreco.DeepWork
 open Scheduling
+
 
 
 //planwork
@@ -15,13 +18,13 @@ open Scheduling
 
 type SlotIdNotFound = SlotIdNotFound
 type Success = Success
-
+type Specification<'a> = 'a -> bool
 
 type CommandF<'a> = 
     | GetSchedule of unit * (Schedule -> 'a)
     | PlanWork of Work * (Success -> 'a)
     | UnplanWork of Work * (Success -> 'a)
-    | SetSlotAssignment of (SlotId * Engagement option) * (Result<Success, SlotIdNotFound> -> 'a)
+    | SetSlotAssignment of (Specification<Slot> * Engagement option) * (Success -> 'a)
 
 (*
     | PlanWork of Work * (unit -> 'a)
@@ -81,31 +84,14 @@ let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
 let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
 
 
-// let assignWork period work = command { 
-//     let! slots = slotsInPeriod period
-// }
-
-
-
-(*
-let assignWorkToSlot slotId work = command { 
-    let! schedule = getSchedule
-    let result = 
-        match Schedule.findSlotById slotId with 
-        | None -> Error SlotIdNotFound
-        | Some slot -> 
-            match slot with 
-            | Conflicting existingEngagement
-
-
+success | error (conflitos)
+let assignWork period work = command {
+    let! slots = slotsInPeriod period
+    let conflicts = slots |> List.choose (fun s -> match s with | Conflicts work _ -> Some s | _ -> None)
+    return  
+        match conflicts with 
+        | [] -> 
+            let! result = 
+        | conflicts -> Error conflicts
 }
 
-let assignAndPlanConflicts work slot = command {
-        let! (slot, workConflicts)  = assignSlot work slot
-        for work in workConflicts do
-            do! unassignWork work slot
-            do! planWork work
-    }
-    
-    
-*)

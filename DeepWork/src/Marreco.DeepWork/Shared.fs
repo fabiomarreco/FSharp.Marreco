@@ -1,5 +1,9 @@
-namespace Marreco.DeepWork
+module Shared
 
+let const' a _ = a
+
+
+//------------
 
 module Optics = 
     type Lens<'a, 'b> = ('a -> 'b) * ('b -> 'a -> 'a)
@@ -13,3 +17,4 @@ type TBD = Undefined // To be defined...
 type ApplyEvents<'state, 'event> = 'state -> 'event -> 'state
 
 type CommandHandler<'state, 'command, 'event, 'error> = 'state -> 'command -> Result<'event list, 'error>
+

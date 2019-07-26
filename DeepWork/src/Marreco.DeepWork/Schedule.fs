@@ -2,6 +2,7 @@
 
 open Time
 open Work
+open Shared
 
 
 type SlotId = Period
@@ -9,7 +10,7 @@ type Slot =
     private { Period  : Period; Engagement : Engagement option }
         with 
             member x.Id : SlotId = x.Period
-            static member Engagement_ = ()
+            static member Engagement' = (fun s -> s.Engagement), (fun e s -> { s with Engagement = Some e } )
         // with  static member Task_ = (fun s -> s.Task), (fun t s -> { s with Task = t})
 
 module Slot =
@@ -43,6 +44,14 @@ module Slot =
         | ShallowWork w -> assignShallowWork w
         | DeepWork d -> assignDeepWork d
 
+let (|Conflicts|_|) work slot = 
+    match slot.Engagement, work with 
+    | None, _ -> None 
+    | Some (Deep d), _ -> Some ([DeepWork d])
+    | Some (Shallow ws), (DeepWork _) -> Some (ws |> List.map ShallowWork)
+    | Some (Shallow _), ShallowWork _ -> None
+    | Some (Offwork _), _ -> None //deveria bloquear o offwork?
+
 //================================================================
 
 type Schedule = private {
@@ -55,8 +64,11 @@ module Schedule =
     let create date duration = 
         { Date = date; Planned = []; Slots = Slot.createSlotsForDay duration date }
 
+    let mapSlotsInPeriod fInPeriod fOutPeriod period schedule = 
+        List.map (fun s -> match s.Period with | PeriodTouching period -> fInPeriod s | _ -> fOutPeriod s) schedule.Slots
+
     let slotsInPeriod period schedule = 
-        List.choose (fun s -> match s.Period with | PeriodTouching period -> Some s | _ -> None) schedule.Slots
+        mapSlotsInPeriod Some (const' None) period schedule |> List.choose id
 
     let findSlotById id schedule = schedule.Slots |> List.tryFind (fun x-> x.Id = id)
 
@@ -70,31 +82,17 @@ module Schedule =
 
     let plan work schedule = { schedule with Planned = work::schedule.Planned }
 
-    type SlotConflicts = (SlotId * Engagement) list
-    type SlotAssignmentError = 
-        | NoMatchingSlots
-        | SlotsConflicted of SlotConflicts
+    type ConflictingSlots = ConflictingSlots of Slot list
 
+    let assignWork  period work schedule = 
+        let inPeriod' slot = Slot.assignWork work slot |> Result.mapError (const' slot)
+        mapSlotsInPeriod inPeriod' Ok period schedule
+        |> List.fold(fun acc n -> match acc, n with 
+                                  | Error eacc, Error s -> Error (s::eacc)
+                                  | Error eacc, Ok _ -> Error (eacc)
+                                  | Ok _, Error s -> Error [s]
+                                  | Ok oacc, Ok an -> Ok (an::oacc)) (Ok [])
+        |> Result.map (fun slots -> { schedule with Slots = slots })
+        |> Result.mapError (ConflictingSlots)
+//
 
-
-    (*
-     * tries to assign an engagement to slots inside a period, it returns either
-     *   - Success with matching slots 
-     *   - Failure stating that either no slot was found or there were conflicts
-     
-    let tryAssignEngagement period engagement schedule = 
-        let matchingSlots = slotsInPeriod period schedule
-        if (matchingSlots.IsEmpty) then Error NoMatchingSlots
-        else 
-            let conflicts = 
-                matchingSlots 
-                |> List.fold (fun acc next -> 
-                                match next with
-                                | Conflicting engagement c -> (next.Id, c)::acc
-                                | _ -> acc
-                             ) []
-            let matchingSlotsId = matchingSlots |> List.map (fun x -> x.Id)
-            if (conflicts.IsEmpty) then Ok matchingSlotsId
-            else Error (SlotsConflicted conflicts)
-
-*)

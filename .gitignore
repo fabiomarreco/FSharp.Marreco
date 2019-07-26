@@ -6,6 +6,7 @@
 # User-specific files
 **/.vscode/*
 **/.ionide/*
+**/.paket/*
 *.suo
 *.user
 *.userosscache
