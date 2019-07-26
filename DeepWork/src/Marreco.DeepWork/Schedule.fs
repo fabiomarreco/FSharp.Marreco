@@ -78,6 +78,7 @@ module Schedule =
         { schedule with Slots = List.map replaceEngagement schedule.Slots }
         
 
+    let allSlots s = s.Slots
     // algebra
 
     let plan work schedule = { schedule with Planned = work::schedule.Planned }

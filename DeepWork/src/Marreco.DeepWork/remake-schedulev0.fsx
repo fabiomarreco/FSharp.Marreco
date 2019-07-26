@@ -18,13 +18,14 @@ open Scheduling
 
 type SlotIdNotFound = SlotIdNotFound
 type Success = Success
-type Specification<'a> = 'a -> bool
+
+type Predicate<'a> = 'a -> bool
 
 type CommandF<'a> = 
     | GetSchedule of unit * (Schedule -> 'a)
     | PlanWork of Work * (Success -> 'a)
     | UnplanWork of Work * (Success -> 'a)
-    | SetSlotAssignment of (Specification<Slot> * Engagement option) * (Success -> 'a)
+    | SetSlotAssignment of (Slot -> Engagement option) * (Success -> 'a)
 
 (*
     | PlanWork of Work * (unit -> 'a)
@@ -76,22 +77,40 @@ let stop = Pure
 let getSchedule = Free <| GetSchedule ((), stop)
 let planWork work = Free <| PlanWork (work, stop)
 let unplanWork work = Free <| UnplanWork (work, stop)
-let setSlotAssignment slotId engagement = Free <| SetSlotAssignment ((slotId,engagement), stop)
+let setSlotAssignment f = Free <| SetSlotAssignment (f, stop)
 
 //other....
 let mapSchedule f = Command.map f getSchedule
 let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
 let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
 
+let assignWorkToSlot work slot = command {
+    let p slot = 
+        let slotAssigment = Slot.assignWork work slot
+        Result.map (fun s-> setSlotAssignment s slotAssigment
 
-success | error (conflitos)
+    p slot
+}
+
+//success | error (conflitos)
 let assignWork period work = command {
-    let! slots = slotsInPeriod period
-    let conflicts = slots |> List.choose (fun s -> match s with | Conflicts work _ -> Some s | _ -> None)
-    return  
-        match conflicts with 
-        | [] -> 
-            let! result = 
-        | conflicts -> Error conflicts
+    let setSlot = Slot.assignWork work >> Result.map (fun s-> s.Engagement)
+
+
+    let setSlotEngagement slot =
+        match slot with 
+        | Conflicts work _ -> Error slot.Id
+        | _ -> Slot.assignWork
+
+
+        match    
+    let! slots = slotsInPeriod period 
+    let conflictingSlots = slots |> List.filter (function | Conflicts work _ ->  true | _ -> false)
+    if (List.isEmpty conflictingSlots) then 
+        for slot in slots do
+             Slot.assignWork work slot
+            let! _ = setSlotAssignment (fun s -> s.Id = slot.Id) (newSlot.)
+
+
 }
 

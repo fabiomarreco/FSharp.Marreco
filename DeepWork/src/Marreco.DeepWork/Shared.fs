@@ -1,4 +1,5 @@
 module Shared
+open System
 
 let const' a _ = a
 
@@ -12,9 +13,13 @@ module Optics =
 
 type TBD = Undefined // To be defined...
 
+[<Obsolete("Undefined Implementation")>]
+let NotImplemented _ = raise (NotImplementedException())
+
 
 //Apply the events to the current state, bringing the aggregate state Up to Date
 type ApplyEvents<'state, 'event> = 'state -> 'event -> 'state
 
 type CommandHandler<'state, 'command, 'event, 'error> = 'state -> 'command -> Result<'event list, 'error>
+
 
