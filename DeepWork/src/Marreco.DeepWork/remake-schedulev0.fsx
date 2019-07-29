@@ -85,6 +85,8 @@ let mapSchedule f = Command.map f getSchedule
 let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
 let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
 
+
+(*
 let assignWorkToSlot work slot = command {
     let filter s = s.Id == slot.Id
     let update s = Slot.assignWork work s
@@ -120,3 +122,6 @@ let assignWork period work = command {
 
 }
 
+
+
+*)

@@ -56,13 +56,15 @@ let (|Conflicts|_|) work slot =
 
 type Schedule = private {
     Date   : Date
-    Planned: Work list
+    Planned: Set<Work>
     Slots  : Slot list
 } 
 
 module Schedule =
     let create date duration = 
-        { Date = date; Planned = []; Slots = Slot.createSlotsForDay duration date }
+        { Date = date; Planned = Set.empty; Slots = Slot.createSlotsForDay duration date }
+
+    let isPlanned work schedule = Set.contains work schedule.Planned
 
     let mapSlotsInPeriod fInPeriod fOutPeriod period schedule = 
         List.map (fun s -> match s.Period with | PeriodTouching period -> fInPeriod s | _ -> fOutPeriod s) schedule.Slots
@@ -81,7 +83,7 @@ module Schedule =
     let allSlots s = s.Slots
     // algebra
 
-    let plan work schedule = { schedule with Planned = work::schedule.Planned }
+    let plan work schedule = { schedule with Planned = schedule.Planned.Add (work) }
 
     type ConflictingSlots = ConflictingSlots of Slot list
 
