@@ -1,7 +1,22 @@
 module Shared
 open System
 
+// shared
 let const' a _ = a
+
+
+//result
+[<AutoOpen>]
+module ResultOperators = 
+    let inline (<!>) r f = Result.map f r
+    let inline (<*!>) r f = Result.mapError f r
+
+
+module Option = 
+    let toResult fSuccess error opt = Option.fold (fun _ a -> Ok (fSuccess a)) (Error error) opt
+
+
+
 
 
 //------------

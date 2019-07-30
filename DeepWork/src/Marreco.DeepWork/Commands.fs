@@ -5,9 +5,66 @@ open Work
 open Shared
 open Slot 
 
-type WorkPlanned = Work
-type WorkUnplaned = Work
-type SlotAssigned = SlotId * Engagement option 
+
+//error
+type SlotIdNotFound = SlotIdNotFound of SlotId
+
+(*
+ * Base commands
+*)
+
+// Work plan work
+type WorkPlanned = WorkPlanned of Work
+type WorkPlannedError = | WorkAlreadyPlanned
+let planWork work schedule = if (Schedule.isPlanned work schedule) then 
+                                Ok <| WorkPlanned work 
+                             else Error WorkAlreadyPlanned
+
+// let planWork work schedule = if (Schedule.isPlanned work schedule) then 
+//                                 Ok <| WorkPlanned work 
+//                              else Error WorkAlreadyPlanned
+
+// Unplan work
+type WorkUnplaned = WorkUnplaned of Work
+type WorkUnplannedError = PlannedWorkNotFound
+let unplanWork work schedule = if (not <| Schedule.isPlanned work schedule) then 
+                                    Ok <| WorkUnplaned work 
+                               else Error PlannedWorkNotFound
+
+
+// Assign slot engagement
+type SlotAssigned = SlotAssigned of SlotId * Engagement option 
+type SlotAssignmentError = SlotIdNotFound
+let assignSlotEngagement slotId engagement schedule = 
+    Schedule.findSlotById slotId schedule 
+    |> (function | Some _ -> Ok <| SlotAssigned (slotId, engagement)
+                 | None -> Error (SlotIdNotFound slotId))
+    
+
+(*
+ * Composed commands
+*)
+type ConflictingSlot = ConflictingSlot of SlotId * ConflictingWork
+type AssignWorkToSlotError = 
+    | ConflictingSlot of ConflictingSlot
+    | SlotIdNotFound of SlotIdNotFound
+
+let assignWorkToSlot slotId work schedule = 
+    Schedule.findSlotById slotId schedule
+    |> (function | Some slot -> match Slot.assignWork work slot  with 
+                                | Ok s -> Ok <| SlotAssigned (s.Id, Slot.engagement s)
+                                | Error ws -> Error <| ConflictingSlot (slot.Id, ws)
+                 | None -> Error <| SlotIdNotFound slotId)
+
+    // let assignWorkToSlot work slotId  : Command = 
+    //     fun schedule -> Schedule.findSlotById slotId schedule
+    //                     |> Option.map (fun slot -> 
+    //                                        Slot.assignWork work slot
+    //                                        |> Result.map (fun s-> [SlotAssigned (s.Id, Slot.engagement s)])
+    //                                        |> Result.mapError (fun ws -> Conflicts (slot.Id, ws)))
+    //                     |> Option.defaultValue (Error SlotIdNotFound)
+                        
+
 
 type Event = 
     | WorkPlanned of WorkPlanned
@@ -21,6 +78,7 @@ type CommandError =
 type CommandResult = Result<Event list, CommandError>
 
 type Command = Schedule -> CommandResult
+
 
 module Command = 
     let foldCommands (cs: CommandResult list) : CommandResult = 
