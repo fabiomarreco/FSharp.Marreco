@@ -7,7 +7,7 @@ open Slot
 
 
 //error
-type SlotIdNotFound = SlotIdNotFound of SlotId
+type SlotIdNotFound = SlotId
 
 (*
  * Base commands
@@ -34,7 +34,7 @@ let unplanWork work schedule = if (not <| Schedule.isPlanned work schedule) then
 
 // Assign slot engagement
 type SlotAssigned = SlotAssigned of SlotId * Engagement option 
-type SlotAssignmentError = SlotIdNotFound
+type SlotAssignmentError = SlotIdNotFound of SlotIdNotFound
 let assignSlotEngagement slotId engagement schedule = 
     Schedule.findSlotById slotId schedule 
     |> (function | Some _ -> Ok <| SlotAssigned (slotId, engagement)
@@ -44,17 +44,32 @@ let assignSlotEngagement slotId engagement schedule =
 (*
  * Composed commands
 *)
-type ConflictingSlot = ConflictingSlot of SlotId * ConflictingWork
+
+
+type ConflictingSlot = SlotId * ConflictingWork
+
+// work to slot
 type AssignWorkToSlotError = 
     | ConflictingSlot of ConflictingSlot
     | SlotIdNotFound of SlotIdNotFound
-
 let assignWorkToSlot slotId work schedule = 
     Schedule.findSlotById slotId schedule
     |> (function | Some slot -> match Slot.assignWork work slot  with 
-                                | Ok s -> Ok <| SlotAssigned (s.Id, Slot.engagement s)
-                                | Error ws -> Error <| ConflictingSlot (slot.Id, ws)
-                 | None -> Error <| SlotIdNotFound slotId)
+                                | Ok s      -> Ok    <| SlotAssigned (s.Id, Slot.engagement s)
+                                | Error ws  -> Error <| ConflictingSlot (slot.Id, ws)
+                 | None      -> Error <| SlotIdNotFound slotId)
+
+
+let assignWorkToPeriod period work schedule = 
+    Schedule.slotsInPeriod period schedule
+    |> List.map (Slot.assignWork work >> Result.map (fun sa -> SlotAssigned (sa.Id, Slot.engagement sa)))
+    |> List.fold Result.biListFold (Ok[])
+
+    
+
+                             
+
+
 
     // let assignWorkToSlot work slotId  : Command = 
     //     fun schedule -> Schedule.findSlotById slotId schedule

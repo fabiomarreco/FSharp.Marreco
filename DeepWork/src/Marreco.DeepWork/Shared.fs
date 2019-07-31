@@ -15,8 +15,22 @@ module ResultOperators =
 module Option = 
     let toResult fSuccess error opt = Option.fold (fun _ a -> Ok (fSuccess a)) (Error error) opt
 
+module List = 
+    let cons h t = h::t
 
+module Result = 
+    let cata fSuccess fFailure = function | Ok a -> fSuccess a | Error e -> fFailure e
+    let bimap f g = cata (Ok << f) (Error << g)
+    let comp : ('s1 -> 's2 -> 's) -> ('e -> 'e -> 'e) -> Result<'s1, 'e> -> Result<'s2, 'e> -> Result<'s, 'e> = 
+        fun f g r1 r2 -> match r1, r2 with 
+                         | Ok s1, Ok s2       -> Ok (f s1 s2)
+                         | Error e1, Error e2 -> Error (g e1 e2)
+                         | Error e1, _        -> Error (e1)
+                         | _, Error e2        -> Error e2
 
+    let biListFold racc rnext = 
+        let rnext' = rnext |> Result.mapError (List.singleton) |> Result.map (List.singleton)
+        comp (List.append) (List.append) racc rnext'
 
 
 //------------
