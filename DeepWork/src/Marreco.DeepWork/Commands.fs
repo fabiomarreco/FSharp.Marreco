@@ -40,7 +40,6 @@ let assignSlotEngagement slotId engagement schedule =
     |> (function | Some _ -> Ok <| SlotAssigned (slotId, engagement)
                  | None -> Error (SlotIdNotFound slotId))
     
-
 (*
  * Composed commands
 *)
@@ -67,6 +66,16 @@ let assignWorkToPeriod period work schedule =
 
     
 
+let assignWorkAndPlanconflicts period work schedule = 
+    match assignWorkToPeriod period work schedule with
+    | Ok s -> Ok (s, [])
+    | Error (errs) -> errs 
+                      |> List.map (
+                            function 
+                            | ConflictsWithWork ws -> let plans = 
+                                                         ws |> List.map (fun w -> planWork w schedule)
+                                                         |> List.choose (function | Ok r -> Some r | _ -> None)
+                      )
                              
 
 
