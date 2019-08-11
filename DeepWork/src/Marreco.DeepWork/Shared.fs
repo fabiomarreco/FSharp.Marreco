@@ -19,6 +19,11 @@ module List =
     let cons h t = h::t
 
 module Result = 
+    let flatten = function  
+        | Ok (Ok s) -> Ok s
+        | Error e -> Error e
+        | Ok (Error e) -> Error e
+
     let cata fSuccess fFailure = function | Ok a -> fSuccess a | Error e -> fFailure e
     let bimap f g = cata (Ok << f) (Error << g)
     let comp : ('s1 -> 's2 -> 's) -> ('e -> 'e -> 'e) -> Result<'s1, 'e> -> Result<'s2, 'e> -> Result<'s, 'e> = 
@@ -33,6 +38,11 @@ module Result =
         comp (List.append) (List.append) racc rnext'
 
 
+
+module Tuple2 = 
+    let mapFst f (a, b) = (f a, b)
+    let mapSnd f (a, b) = (a, f b)
+    let kkk f a = a, f a
 //------------
 
 module Optics = 

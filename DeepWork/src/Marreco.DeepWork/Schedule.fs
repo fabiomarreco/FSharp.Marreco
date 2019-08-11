@@ -12,17 +12,18 @@ type Slot =
             member x.Id : SlotId = x.Period
             static member Engagement' = (fun s -> s.Engagement), (fun e s -> { s with Engagement = Some e } )
         // with  static member Task_ = (fun s -> s.Task), (fun t s -> { s with Task = t})
+type ConflictingWork = 
+    | ConflictsWithWork of Work list
+    | ConflictsWithOffWork of Offwork
 
 module Slot =
     let period { Period = p; Engagement = _} = p
     let engagement { Period = _; Engagement = e} = e
+    let withEngagement engagement slot = { slot with Engagement = engagement }
 
     let createEmpty period = { Period = period;  Engagement = None }
     let createSlotsForDay duration = Period.splitDayInPeriodsOf duration >> List.map createEmpty
 
-    type ConflictingWork = 
-        | ConflictsWithWork of Work list
-        | ConflictsWithOffWork of Offwork
 
     let assignShallowWork work slot = 
         match slot.Engagement with
@@ -74,16 +75,31 @@ module Schedule =
 
     let findSlotById id schedule = schedule.Slots |> List.tryFind (fun x-> x.Id = id)
 
-    let setSlotEngagement predicate engagement schedule = 
-        //usar lensing...
-        let replaceEngagement (slot:Slot) = if (predicate slot) then {slot with Engagement = engagement} else slot
-        { schedule with Slots = List.map replaceEngagement schedule.Slots }
+
+
+    let setSlotEngagement id engagement schedule = 
+        let replaceIfidEquals (newSlot:Slot) (oldSlot:Slot) = if (newSlot.Id = oldSlot.Id) then newSlot else oldSlot 
+        findSlotById id schedule
+        |> Option.map (Slot.withEngagement engagement)
+        |> Option.map (fun newSlot -> {schedule with Slots = List.map (replaceIfidEquals newSlot) schedule.Slots })
+
+
+
+    // let setSlotEngagement predicate engagement schedule = 
+    //     //usar lensing...
+   
+   
+    //     let replaceEngagement (slot:Slot) = if (predicate slot) then {slot with Engagement = engagement} else slot
+   
+   
+    //     { schedule with Slots = List.map replaceEngagement schedule.Slots }
         
 
     let allSlots s = s.Slots
     // algebra
 
     let plan work schedule = { schedule with Planned = schedule.Planned.Add (work) }
+    let unplan work schedule = { schedule with Planned = schedule.Planned.Remove (work)}
 
     type ConflictingSlots = ConflictingSlots of Slot list
 
