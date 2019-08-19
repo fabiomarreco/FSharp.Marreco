@@ -1,7 +1,7 @@
 module Work 
 
-type DeepWork = TBD
-type ShallowWork = ShallowWork of string
+type DeepWork = string
+type ShallowWork = string
 type Offwork = TBD
 
 type Work =

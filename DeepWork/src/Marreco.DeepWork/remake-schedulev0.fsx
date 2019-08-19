@@ -188,3 +188,26 @@ let interpretAsEvents program schedule =
     loop [] schedule program            
 
 
+//====================
+//testes
+
+open System
+open Time
+let date = Date.createFromDate (DateTime.Today)
+let sch = Schedule.create date (Duration.fromMinutes 30)
+let run c =  interpretAsEvents c sch
+
+let period = 
+    TimeOfDay.fromTimeSpan (TimeSpan.FromHours(16.)) 
+    |> Option.map (Moment.fromDateAndTime date)
+    |> Option.bind (fun d -> Period.create d (Duration.fromMinutes 30))
+    |> Option.get
+
+
+let c = command { 
+    return! assignWorkToSlotsInPeriod period (ShallowWork "check email")
+    return! assignWorkToSlotsInPeriod period (ShallowWork "check email")
+}
+
+run c
+
