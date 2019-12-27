@@ -39,3 +39,13 @@ else
 --> "Pending Assignement Included"
 ```
 
+-----------------------
+
+Domain problem for cqrs
+- Banking?
+    - Open Account
+    - Close Account
+    - Debit
+    - Credit
+    - 
+- Compras

@@ -1,4 +1,4 @@
-#load "../.paket/load/netcoreapp2.2/main.group.fsx"
+//#load "../.paket/load/netcoreapp2.2/main.group.fsx"
 #load "Shared.fs"
 #load "Time.fs"
 #load "Work.fs"
@@ -8,13 +8,6 @@
 open Work
 open Scheduling
 open Shared
-
-
-//planwork
-//unplan work
-//assign slot 
-//unassign slot
-//type Conflicts = Slot * Work list
 
 type SlotIdNotFound = SlotIdNotFound
 type WorkAlreadyPlanned = WorkAlreadyPlanned
@@ -31,62 +24,53 @@ module CommandResult =
 //type Predicate<'a> = 
 
 
-type CommandF<'a> = 
+type InstructionF<'a> = 
     | GetSchedule of (Schedule -> 'a)
 //    | GetConflicts of (SlotId * Work) * (ConflictingWork option -> 'a)
     | PlanWork of Work * (CommandResult<WorkAlreadyPlanned> -> 'a)
     | UnplanWork of Work * (CommandResult<WorkNotPlanned> ->'a)
     | SetSlotEngagement of (SlotId * Engagement option) * (CommandResult<SlotIdNotFound> -> 'a)
 
-(*
-    | PlanWork of Work * (unit -> 'a)
-    | UnassignWork of Work * Slot * (unit -> 'a)
-    | AssignWork of Work * Slot * (Conflicts -> 'a)
-*)
-
 
 // Mechanical.....
-module CommandF = 
+module InstructionF = 
     let map f = function 
         | GetSchedule next -> GetSchedule (next >> f)
         | PlanWork (input, next) -> PlanWork (input, next >> f)
         | UnplanWork (input, next) -> UnplanWork (input, next >> f)
-//        | GetConflicts (input, next) -> GetConflicts (input, next >> f)
         | SetSlotEngagement (input, next) -> SetSlotEngagement (input, next >> f)
 
-type Command<'a> = 
+type Instruction<'a> = 
     | Pure of 'a 
-    | Free of CommandF<Command<'a>>
+    | Free of InstructionF<Instruction<'a>>
 
-
-module Command = 
+module Instruction = 
     let retrn a = Pure a
     let rec map f = function 
         | Pure a -> f a  |> Pure
-        | Free c -> CommandF.map (map f) c |> Free
+        | Free c -> InstructionF.map (map f) c |> Free
     let rec bind f = function 
         | Pure a -> f a 
-        | Free c -> CommandF.map (bind f) c |> Free
+        | Free c -> InstructionF.map (bind f) c |> Free
 
     let kleisli f g = f >> bind g 
 
-type CommandBuilder() = 
+type InstructionBuilder() =
     member __.ReturnFrom (a) = a
     member __.Zero() = Pure ()
-    member __.Return(a) = Command.retrn a
-    member __.Bind (a, f) = Command.bind f a
+    member __.Return(a) = Instruction.retrn a
+    member __.Bind (a, f) = Instruction.bind f a
     member x.While (guard, body) = if (not <| guard()) then x.Zero()
                                    else x.Bind (body, (fun _ -> x.While (guard, body)))
-
     member x.For(coll:seq<_>, func) = 
         let en = coll.GetEnumerator()
         x.While (en.MoveNext, func en.Current)
 
-let command = CommandBuilder()
+let command = InstructionBuilder()
 
-let inline (<!>) a f = Command.map f a
-let inline (>>=) a f = Command.bind f a
-let inline (>=>) f g = Command.kleisli f g
+let inline (<!>) a f = Instruction.map f a
+let inline (>>=) a f = Instruction.bind f a
+let inline (>=>) f g = Instruction.kleisli f g
 
 //================ end mechanical
 
@@ -99,7 +83,7 @@ let unplanWork work = Free <| UnplanWork (work, stop)
 let setSlotEngagement slotId engagement = Free <| SetSlotEngagement ((slotId, engagement), stop)
 
 //get commands
-let mapSchedule f = Command.map f getSchedule
+let mapSchedule f = Instruction.map f getSchedule
 let slotById slotId = Schedule.findSlotById slotId |> mapSchedule
 let slotsInPeriod period = Schedule.slotsInPeriod period |> mapSchedule
 
